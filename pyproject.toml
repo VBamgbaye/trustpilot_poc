@@ -1,0 +1,75 @@
+[project]
+name = "trustpilot-poc"
+version = "0.1.0"
+description = "PoC: governed ingestion of trustpilot XLSXs into SQLite with a CSV-first FastAPI"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pandas>=2.0.0",
+    "pandera>=0.17.0",         
+    "SQLAlchemy>=2.0.0",        
+    "sqlite-utils>=3.36",       
+    "python-dotenv>=1.0.0",    
+    "typer>=0.12.0",
+    "pyyaml>=6.0.0",
+    "openpyxl>=3.0.0",        
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.25.0",            
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+    "mypy>=1.6.0",
+]
+
+[project.scripts]
+trustpilot-ingest = "app.ingest:cli"  
+trustpilot-serve = "app.run:cli"      
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]              
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E","W","F","I","B","C4","UP"
+]
+ignore = [
+    "E501",   # line too long (formatter handles wrapping)
+    "B008",   # function calls in defaults (OK for Typer/Depends)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"app/__init__.py" = ["F401"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "--cov=. --cov-report=term-missing --cov-report=html"
+

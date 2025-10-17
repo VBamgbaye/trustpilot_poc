@@ -1,0 +1,3 @@
+[console_scripts]
+trustpilot-ingest = app.ingest:cli
+trustpilot-serve = app.run:cli

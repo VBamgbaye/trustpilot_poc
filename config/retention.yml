@@ -1,0 +1,26 @@
+version: 1
+raw:
+  path: data/trustpilot_raw
+  retention_days: 90
+  action_after_expiry: delete
+stage:
+  path: data/stage
+  retention_days: 180
+  action_after_expiry: delete
+database:
+  file: data/trustpilot_poc.db
+  backup:
+    path: data/backups
+    keep_last: 10
+exports:
+  default_pii: false
+  masking:
+    Email_Address: hash
+    Reviewer_Name: redact
+    Review_IP_Address: redact
+    Reviewer_Id: hash
+  filename_template: "{endpoint}_{yyyymmdd_HHMMSS}.csv"
+audit:
+  enabled: true
+  request_log: logs/api_audit.log
+  fields: [timestamp, request_id, endpoint, params, rows_returned, status, duration_ms, actor]

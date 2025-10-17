@@ -1,0 +1,228 @@
+# Data Catalog for Trustpilot Project
+# Defines data assets, schemas, and pipeline metadata
+
+project:
+  name: trustpilot-poc
+  description: Customer review data pipeline and csv-first API
+  owner: Victor
+  version: 0.1.0
+
+metadata:
+  last_updated: "2025-10-14"
+  data_steward: "Victor"
+  compliance:
+    gdpr: true
+    pii_default: false 
+    export_format: csv
+    export_charset: "utf-8"
+    export_quote_style: rfc4180
+    pii_handling_doc: "README.md#dpia-lite"
+    audit_logging: true
+
+datasets:
+  reviews_raw:
+    path: "data/trustpilot_raw/reviews_{date}.xlsx"
+    format: xlsx
+    description: Raw review data from Trustpilot
+    schema_ref: "docs/data_dictionary.md#raw_reviews"
+    update_frequency: "on-demand"
+    owner: "data-pipeline"
+    retention_days: 90
+    fields:
+      - Review Id
+      - Reviewer Name
+      - Review Title
+      - Review Rating
+      - Review Content
+      - Review IP Address
+      - Business Id
+      - Business Name
+      - Reviewer Id
+      - Email Address
+      - Reviewer Country
+      - Review Date
+    pii_fields:
+      - Reviewer Name
+      - Email Address
+      - Review IP Address
+      - Reviewer Id
+    sensitive_fields:
+      - Review IP Address
+    masking:
+      default: redact
+      columns:
+        Reviewer Name: redact
+        Email Address: hash 
+        Review IP Address: redact
+        Reviewer Id: hash
+    tags:
+      - raw
+
+  stage_reviews:
+  description: "Validated and cleaned review data"
+  location: "data/stage/reviews.parquet"
+  format: "Parquet"
+  schema_ref: "docs/data_dictionary.md#stage_reviews"
+  source: "reviews_raw"
+  transformations:
+    - "Convert field names from Title Case to snake_case (e.g., 'Review Id' → 'review_id')"
+    - "Parse Review_Date to ISO8601 (UTC)"           # standard for APIs and time ops
+    - "Validate Review_Rating in range [1 - 5]"
+    - "Trim and normalize all text fields"
+    - "Validate email format"
+    - "Detect and handle duplicate Review_Id"
+    - "Validate IP address format"
+  owner: "data-pipeline"
+  retention_days: 180
+  tags:
+    - stage
+    - validated
+
+tables:
+  business:
+    description: "Business dimension"
+    location: "db/business"
+    format: "SQLite table"
+    source: "stage_reviews"
+    fields:
+      - business_id (PK)
+      - business_name
+      - first_review_date
+      - last_review_date
+      - total_reviews
+    update_frequency: "on-load"
+    owner: "data-pipeline"
+    tags: [dimension, database]
+
+  user:
+    description: "User dimension (contains PII)"
+    location: "db/user"
+    format: "SQLite table"
+    source: "stage_reviews"
+    fields:
+      - user_id (PK)
+      - email_address
+      - user_name
+      - reviewer_country
+      - first_review_date
+      - total_reviews
+    pii_fields:
+      - email_address
+      - user_name
+    masking:
+      default: redact
+      columns:
+        email_address: hash
+        user_name: redact
+    update_frequency: "on-load"
+    owner: "data-pipeline"
+    tags: [dimension, database, pii]
+
+  review:
+    description: "Reviews fact table"
+    location: "db/review"
+    format: "SQLite table"
+    source: "stage_reviews"
+    fields:
+      - review_id (PK)
+      - user_id (FK)
+      - business_id (FK)
+      - review_date
+      - review_rating
+      - review_title
+      - review_content
+      - review_ip_address
+      - source_file
+      - source_row
+    pii_fields:
+      - review_ip_address
+    masking:
+      default: none
+      columns:
+        review_ip_address: redact
+    update_frequency: "on-load"
+    owner: "data-pipeline"
+    tags: [fact, database]
+
+  metrics_summary: # new table for pre-aggregated metrics.
+    description: "Pre-aggregated metrics by business and period"
+    location: "db/metrics_summary"
+    format: "SQLite table"
+    source: "review"
+    fields:
+      - business_id
+      - period_start_date
+      - total_reviews
+      - avg_rating
+      - rating_distribution
+    update_frequency: "on-load"
+    owner: "data-pipeline"
+    tags: [aggregate, database]
+
+views: # API views with PII handling
+  v_reviews_public:
+    description: "Non-PII review view for external export"
+    select:
+      - review_id
+      - business_id
+      - user_id
+      - review_date
+      - review_rating
+      - review_title
+      - review_content
+    excludes_pii: true
+    consumers: [api_public]
+
+  v_reviews_private: # view with PII for authorized users
+    description: "PII-enabled review view (restricted)"
+    select:
+      - review_id
+      - business_id
+      - user_id
+      - review_date
+      - review_rating
+      - review_title
+      - review_content
+      - email_address
+      - user_name
+      - review_ip_address
+    excludes_pii: false
+    consumers: [api_pii]
+
+pipelines:
+  ingest:
+    description: "Load raw data"
+    entry_point: "app.ingest"       
+    outputs: [business, user, review, metrics_summary]
+    validations:
+      - "Review_Id uniqueness"
+      - "Review_Rating in [1..5]"
+      - "Review_Date ISO8601"
+      - "Email format"
+      - "Required fields present"
+    schedule: "manual"
+
+  retention:
+    description: "Apply retention policies (GDPR compliance)"
+    entry_point: "app.retention"
+    schedule: "weekly"
+    action: "cleanup"
+    policy: "Delete raw older than retention_days; anonymize PII in staged exports"
+
+api_contracts:
+  - name: "GET /reviews/by-business"
+    view: v_reviews_public
+    pii_allowed: false
+    format: csv
+    params: [business_id, from, to, pii=false]
+  - name: "GET /reviews/by-user"
+    view: v_reviews_public
+    pii_allowed: false
+    format: csv
+    params: [user_id, from, to, pii=false]
+  - name: "GET /users/{user_id}"
+    view: v_reviews_private
+    pii_allowed: true
+    format: csv
+    params: [pii=true|false]
+    access_roles: [pii_reader]

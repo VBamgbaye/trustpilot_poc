@@ -1,0 +1,7 @@
+pyproject.toml
+trustpilot_poc.egg-info/PKG-INFO
+trustpilot_poc.egg-info/SOURCES.txt
+trustpilot_poc.egg-info/dependency_links.txt
+trustpilot_poc.egg-info/entry_points.txt
+trustpilot_poc.egg-info/requires.txt
+trustpilot_poc.egg-info/top_level.txt
