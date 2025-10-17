@@ -1,16 +1,19 @@
 from __future__ import annotations
-import os
-import csv
-from io import StringIO
-from typing import Optional, Iterable
-from fastapi import FastAPI, Depends, Request, HTTPException
-from fastapi.responses import StreamingResponse, PlainTextResponse, JSONResponse
-from dotenv import load_dotenv, find_dotenv
-from datetime import datetime
 
-from app.db import get_conn
+import csv
+import os
+from collections.abc import Iterable
+from datetime import datetime
+from io import StringIO
+from typing import Optional
+
+from dotenv import find_dotenv, load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
+
 from app.audit import AuditMiddleware
-from app.security import require_token, allow_pii, AuthContext
+from app.db import get_conn
+from app.security import AuthContext, allow_pii, require_token
 
 load_dotenv(find_dotenv(), override=False)
 
@@ -58,7 +61,7 @@ def healthz(_: AuthContext = Depends(require_token)):
 def meta_catalog(_: AuthContext = Depends(require_token)):
     if not os.path.exists(CATALOG_PATH):
         raise HTTPException(status_code=404, detail="catalog_not_found")
-    with open(CATALOG_PATH, "r", encoding="utf-8") as f:
+    with open(CATALOG_PATH, encoding="utf-8") as f:
         txt = f.read()
     return PlainTextResponse(txt, media_type="text/plain; charset=utf-8")
 
@@ -90,7 +93,7 @@ def reviews_by_business(
     headers = [d[0] for d in cur.description]
     resp = StreamingResponse(stream_cursor_as_csv(cur, headers), media_type="text/csv")
     resp.headers["X-Rows-Returned"] = str(cnt)
-    resp.headers["Content-Disposition"] = f'attachment; filename="{_dl_name(f"reviews_business_{business_id}")}"' 
+    resp.headers["Content-Disposition"] = f'attachment; filename="{_dl_name(f"reviews_business_{business_id}")}"'
     return resp
 
 @app.get("/reviews/by-user")

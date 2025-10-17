@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import argparse
 from datetime import datetime
+
 from app.db import connect
 
 DDL = r"""

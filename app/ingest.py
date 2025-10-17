@@ -1,17 +1,18 @@
 from __future__ import annotations
+
 import argparse
 import csv
 import glob
 import hashlib
 import ipaddress
 import os
-import pyarrow
-from typing import Dict, List, Tuple
 from datetime import datetime
+from typing import Dict, List, Tuple
+
 import openpyxl
 
 from app.db import connect
-from app.dq_rules import validate_row, validate_batch
+from app.dq_rules import validate_batch, validate_row
 
 # Try to support either catalog path; env/CLI can override.
 RAW_GLOB_DEFAULTS = "data/trustpilot_raw/*.xlsx",
@@ -129,7 +130,7 @@ def upsert_business(conn, n: Dict[str, object]) -> None:
             n.get("review_date"),
             n.get("review_date"),
         ),
-    )    
+    )
 
 
 def upsert_user(conn, n: Dict[str, object]) -> None:
@@ -202,26 +203,26 @@ def read_xlsx_rows(path: str) -> Tuple[List[str], List[Dict[str, str]]]:
     """
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     ws = wb.active
-    
+
     rows_iter = ws.iter_rows(values_only=True)
     header_row = next(rows_iter, None)
-    
+
     if not header_row:
         return [], []
-    
+
     # Strip whitespace from headers
     header = [str(cell).strip() if cell is not None else "" for cell in header_row]
-    
+
     raw_rows: List[Dict[str, str]] = []
-    
+
     for row_values in rows_iter:
         row_dict = {}
         for col_idx, cell_value in enumerate(row_values):
             if col_idx >= len(header):
                 break
-            
+
             col_name = header[col_idx]
-            
+
             # Convert cell value to string, handling various Excel types
             if cell_value is None:
                 str_value = ""
@@ -236,11 +237,11 @@ def read_xlsx_rows(path: str) -> Tuple[List[str], List[Dict[str, str]]]:
                     str_value = str(cell_value)
             else:
                 str_value = str(cell_value)
-            
+
             row_dict[col_name] = str_value
-        
+
         raw_rows.append(row_dict)
-    
+
     wb.close()
     return header, raw_rows
 
@@ -416,6 +417,6 @@ if __name__ == "__main__":
     #         for k in total:
     #             total[k] += stats[k]
     #         processed += 1
-            
+
     #     if processed > 0:
     #         compute_metrics_summary(conn)

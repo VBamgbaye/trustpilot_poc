@@ -1,16 +1,18 @@
 from __future__ import annotations
+
 import json
 import logging
 import os
 import time
 import uuid
 from typing import Callable
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 LOG_LEVEL = (os.getenv("LOG_LEVEL", "INFO") or "INFO").upper()
-LOG_FILE  = os.getenv("LOG_FILE", "")  
+LOG_FILE  = os.getenv("LOG_FILE", "")
 
 _logger = logging.getLogger("audit")
 if not _logger.handlers:

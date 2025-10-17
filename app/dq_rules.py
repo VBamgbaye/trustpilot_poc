@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 import re
 from datetime import datetime, timezone
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
-# Raw XLSX headers as they appear in source (verbatim)
+# Raw XLSX headers from in source
 RAW_REQUIRED_COLS = [
     "Review Id",
     "Reviewer Id",
@@ -18,8 +19,7 @@ IP_RE = re.compile(
     r"^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$" # IPv6
 )
 
-# Common date patterns; we normalize to ISO 8601 UTC "YYYY-MM-DDTHH:MM:SSZ"
-# Note: XLSX files may contain dates as Excel serial numbers or formatted strings
+# Date patterns; we normalize to ISO 8601 UTC "YYYY-MM-DDTHH:MM:SSZ"
 _DATE_PATTERNS = [
     "%Y-%m-%d",
     "%Y-%m-%d %H:%M:%S",
@@ -36,8 +36,7 @@ def parse_date_to_iso_utc(s: str) -> Optional[str]:
     if not s:
         return None
     s = s.strip()
-    
-    # Try ISO fast-path (handles formats like "2024-10-17T10:43:39+0200")
+
     try:
         if s.endswith("Z"):
             dt = datetime.fromisoformat(s[:-1]).replace(tzinfo=timezone.utc)
@@ -52,7 +51,7 @@ def parse_date_to_iso_utc(s: str) -> Optional[str]:
         return dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
     except Exception:
         pass
-    
+
     # Try known patterns
     for pat in _DATE_PATTERNS:
         try:
@@ -60,7 +59,7 @@ def parse_date_to_iso_utc(s: str) -> Optional[str]:
             return dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
         except Exception:
             continue
-    
+
     return None
 
 def coerce_int(v: str) -> Optional[int]:
