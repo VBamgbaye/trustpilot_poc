@@ -405,18 +405,3 @@ if __name__ == "__main__":
     cli()
     with connect() as conn:
         compute_metrics_summary(conn)
-
-    # with connect() as conn:
-    #     for path in files:
-    #         sha256 = file_sha256(path)
-    #         if audit_exists(conn, sha256):
-    #             skipped += 1
-    #             continue
-    #         stats = process_file(conn, path)
-    #         audit_run(conn, path, sha256, stats)
-    #         for k in total:
-    #             total[k] += stats[k]
-    #         processed += 1
-
-    #     if processed > 0:
-    #         compute_metrics_summary(conn)
