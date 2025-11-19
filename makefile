@@ -6,7 +6,7 @@ help:
 	@echo "  setup      - Create virtual environment and install dependencies"
 	@echo "  ingest     - Run governed ingestion pipeline (XLSX -> SQLite)"
 	@echo "  api        - Start FastAPI development server"
-	@echo "  test       - Run pytest with coverage"
+	@echo "  test       - Run pytest suite"
 	@echo "  lint       - Run ruff linter and formatter"
 	@echo "  retention  - Run data retention/cleanup (optional PoC step)"
 	@echo "  backup     - Backup database and governance files"

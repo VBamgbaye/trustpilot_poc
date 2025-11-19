@@ -12,6 +12,7 @@ import openpyxl
 
 from app.db import connect
 from app.dq_rules import validate_row, validate_batch
+from app.ge_expectations import summarize_validation, validate_raw_rows
 
 # Try to support either catalog path; env/CLI can override.
 RAW_GLOB_DEFAULTS = "data/trustpilot_raw/*.xlsx",
@@ -268,6 +269,10 @@ def process_file(conn, path: str) -> Tuple[int, int, int, int, int, List[Dict[st
 
     # Batch DQ
     dups, _batch_errs = validate_batch(raw_rows)
+
+    if raw_rows:
+        ge_result = validate_raw_rows(raw_rows)
+        print(f"[ingest] GE validation for {basename}: {summarize_validation(ge_result)}")
 
     bad_rows: List[Tuple[int, Dict[str, str], List[str]]] = []
     good_norm: List[Dict[str, object]] = []
