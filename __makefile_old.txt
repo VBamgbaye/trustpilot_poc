@@ -3,7 +3,7 @@
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  setup      - Create conda environment and install dependencies"
+	@echo "  setup      - Create virtual environment and install dependencies"
 	@echo "  ingest     - Run governed ingestion pipeline (XLSX -> SQLite)"
 	@echo "  api        - Start FastAPI development server"
 	@echo "  test       - Run pytest with coverage"
@@ -16,46 +16,46 @@ help:
 	@echo "  dev-test   - Run lint + tests"
 
 # ------------------------------------------------------------
-# Setup conda environment and install dependencies
+# Setup virtual environment and install dependencies
 # ------------------------------------------------------------
 setup:
-	conda create -n trustpilot python=3.11 -y
-	conda run -n trustpilot pip install --upgrade pip
-	conda run -n trustpilot pip install -e ".[dev]"
+	python -m venv .venv
+	./venv/Scripts/pip install --upgrade pip
+	./venv/Scripts/pip install -e ".[dev]"
 	@if [ ! -f .env ]; then cp .env.template .env || touch .env; echo "Created .env"; fi
 	@mkdir -p data/trustpilot_raw data/meta data/backups
-	@echo "Setup complete! Activate with 'conda activate trustpilot'"
+	@echo "Setup complete! Activate with 'source venv/Scripts/activate'"
 
 # ------------------------------------------------------------
 # Run governed data ingestion
 # ------------------------------------------------------------
 ingest:
 	@echo "Running governed ingestion..."
-	conda run -n trustpilot python -m app.ingest --glob "data/trustpilot_raw/*.xlsx"
+	python -m app.ingest --glob "data/trustpilot_raw/*.xlsx"
 
 # ------------------------------------------------------------
 # Start API server
 # ------------------------------------------------------------
 api:
 	@echo "Starting API server..."
-	conda run -n trustpilot uvicorn app.api:app --host $${API_HOST:-0.0.0.0} --port $${API_PORT:-8000} --reload
+	uvicorn app.api:app --host $${API_HOST:-0.0.0.0} --port $${API_PORT:-8000} --reload
 
 # ------------------------------------------------------------
 # Tests and lint
 # ------------------------------------------------------------
 test:
-	conda run -n trustpilot pytest -v --maxfail=1 --disable-warnings
+	pytest -v --maxfail=1 --disable-warnings
 
 lint:
-	conda run -n trustpilot ruff check . --fix
-	conda run -n trustpilot ruff format .
+	ruff check . --fix
+	ruff format .
 
 # ------------------------------------------------------------
 # Retention policy
 # ------------------------------------------------------------
 retention:
 	@echo "Running data retention cleanup..."
-	conda run -n trustpilot python -m app.retention
+	python -m app.retention
 
 # ------------------------------------------------------------
 # Backup

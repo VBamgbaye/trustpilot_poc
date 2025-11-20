@@ -1,4 +1,16 @@
+LICENSE
+README.md
 pyproject.toml
+app/api.py
+app/audit.py
+app/db.py
+app/dq_rules.py
+app/ingest.py
+app/models.py
+app/security.py
+tests/test_api.py
+tests/test_dq_rules.py
+tests/test_ingest.py
 trustpilot_poc.egg-info/PKG-INFO
 trustpilot_poc.egg-info/SOURCES.txt
 trustpilot_poc.egg-info/dependency_links.txt
